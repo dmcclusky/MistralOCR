@@ -45,6 +45,8 @@ router.post('/process', upload.single('file'), async (req: Request, res: Respons
     }
 
     console.log(`📄 Processing file: ${req.file.originalname}`);
+    console.log(`   MIME type: ${req.file.mimetype}`);
+    console.log(`   Size: ${(req.file.size / 1024).toFixed(2)} KB`);
 
     // Read file and convert to base64
     const fileBuffer = fs.readFileSync(req.file.path);
@@ -53,6 +55,7 @@ router.post('/process', upload.single('file'), async (req: Request, res: Respons
     
     // Create data URI
     const dataUri = `data:${mimeType};base64,${base64File}`;
+    console.log(`   Data URI length: ${dataUri.length} chars`);
 
     // Process with Mistral OCR
     const result = await processDocument(dataUri);
@@ -69,16 +72,18 @@ router.post('/process', upload.single('file'), async (req: Request, res: Respons
     });
 
   } catch (error: any) {
-    console.error('❌ OCR Error:', error);
+    console.error('❌ OCR Route Error:', error);
     
     // Cleanup file on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
 
+    // Send detailed error to client
     res.status(500).json({ 
       error: 'OCR processing failed',
-      message: error.message || 'Unknown error'
+      message: error.message || 'Unknown error',
+      details: error.body || error.response?.data || null
     });
   }
 });
@@ -110,7 +115,8 @@ router.post('/process-url', async (req: Request, res: Response) => {
     console.error('❌ OCR URL Error:', error);
     res.status(500).json({ 
       error: 'OCR processing failed',
-      message: error.message || 'Unknown error'
+      message: error.message || 'Unknown error',
+      details: error.body || error.response?.data || null
     });
   }
 });

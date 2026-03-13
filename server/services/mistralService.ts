@@ -24,6 +24,10 @@ export async function processDocument(documentUrl: string, options: OCROptions =
   const { includeImageBase64 = true } = options;
 
   try {
+    console.log('📤 Sending request to Mistral OCR...');
+    console.log('   Document URL length:', documentUrl.length);
+    console.log('   Model: mistral-ocr-latest');
+
     const response = await mistral.ocr.process({
       model: 'mistral-ocr-latest',
       document: {
@@ -33,10 +37,27 @@ export async function processDocument(documentUrl: string, options: OCROptions =
       includeImageBase64: includeImageBase64,
     });
 
+    console.log('✅ Mistral OCR response received');
     return response;
   } catch (error: any) {
-    console.error('Mistral OCR Error:', error);
-    throw new Error(error.message || 'Failed to process document with Mistral OCR');
+    // Log full error details
+    console.error('❌ Mistral OCR Error Details:');
+    console.error('   Error name:', error.name);
+    console.error('   Error message:', error.message);
+    console.error('   Error status:', error.statusCode || error.status);
+    console.error('   Error code:', error.code);
+    
+    if (error.body) {
+      console.error('   Error body:', JSON.stringify(error.body, null, 2));
+    }
+    if (error.response) {
+      console.error('   Response status:', error.response.status);
+      console.error('   Response data:', JSON.stringify(error.response.data, null, 2));
+    }
+    
+    // Return a more informative error
+    const errorMessage = error.body?.message || error.message || 'Unknown error from Mistral API';
+    throw new Error(`Mistral API Error: ${errorMessage}`);
   }
 }
 
