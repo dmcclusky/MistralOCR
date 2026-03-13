@@ -4,12 +4,20 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environment variables (needed when this file is imported)
-dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+const envPath = path.join(__dirname, '..', '..', '.env');
+console.log('📁 Loading .env from:', envPath);
+dotenv.config({ path: envPath });
 
 // Initialize Mistral client
 const apiKey = process.env.MISTRAL_API_KEY;
 
-if (!apiKey) {
+console.log('🔑 API Key check:');
+console.log('   Exists:', !!apiKey);
+if (apiKey) {
+  console.log('   Length:', apiKey.length);
+  console.log('   First 4 chars:', apiKey.substring(0, 4));
+  console.log('   Last 4 chars:', apiKey.substring(apiKey.length - 4));
+} else {
   console.error('❌ MISTRAL_API_KEY not found in environment variables');
   console.error('   Make sure your .env file exists in the project root');
   process.exit(1);
@@ -41,6 +49,8 @@ export async function processDocumentFile(filePath: string, options: OCROptions 
     
     // Create a Blob from the buffer
     const blob = new Blob([fileBuffer]);
+
+    console.log('   Using API key:', apiKey?.substring(0, 8) + '...');
 
     // Upload file to Mistral (supports up to 512MB)
     const uploadedFile = await mistral.files.upload({
