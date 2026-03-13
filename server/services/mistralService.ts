@@ -1,10 +1,16 @@
 import { Mistral } from '@mistralai/mistralai';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables (needed when this file is imported)
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 // Initialize Mistral client
 const apiKey = process.env.MISTRAL_API_KEY;
 
 if (!apiKey) {
   console.error('❌ MISTRAL_API_KEY not found in environment variables');
+  console.error('   Make sure your .env file exists in the project root');
   process.exit(1);
 }
 
