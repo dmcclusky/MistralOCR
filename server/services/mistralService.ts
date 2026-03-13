@@ -36,11 +36,17 @@ export async function processDocumentFile(filePath: string, options: OCROptions 
     const stats = fs.statSync(filePath);
     console.log('   Size:', (stats.size / 1024 / 1024).toFixed(2), 'MB');
 
+    // Read file into buffer
+    const fileBuffer = fs.readFileSync(filePath);
+    
+    // Create a Blob from the buffer
+    const blob = new Blob([fileBuffer]);
+
     // Upload file to Mistral (supports up to 512MB)
     const uploadedFile = await mistral.files.upload({
       file: {
         fileName: path.basename(filePath),
-        content: fs.createReadStream(filePath),
+        content: blob,
       },
       purpose: 'ocr',
     });
