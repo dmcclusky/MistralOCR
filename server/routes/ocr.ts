@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { processDocument } from '../services/mistralService';
+import { processDocumentFile, processDocumentUrl } from '../services/mistralService';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
 const upload = multer({ 
   storage, 
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit (Mistral supports up to 512MB)
 });
 
 // POST /api/ocr/process - Process uploaded file
@@ -46,21 +46,14 @@ router.post('/process', upload.single('file'), async (req: Request, res: Respons
 
     console.log(`📄 Processing file: ${req.file.originalname}`);
     console.log(`   MIME type: ${req.file.mimetype}`);
-    console.log(`   Size: ${(req.file.size / 1024).toFixed(2)} KB`);
+    console.log(`   Size: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
 
-    // Read file and convert to base64
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const base64File = fileBuffer.toString('base64');
-    const mimeType = req.file.mimetype;
-    
-    // Create data URI
-    const dataUri = `data:${mimeType};base64,${base64File}`;
-    console.log(`   Data URI length: ${dataUri.length} chars`);
+    // Process with Mistral OCR using file upload API
+    const result = await processDocumentFile(req.file.path, {
+      includeImageBase64: true,
+    });
 
-    // Process with Mistral OCR
-    const result = await processDocument(dataUri);
-
-    // Cleanup uploaded file
+    // Cleanup local uploaded file
     fs.unlinkSync(req.file.path);
     console.log(`✅ Successfully processed: ${req.file.originalname}`);
 
@@ -74,7 +67,7 @@ router.post('/process', upload.single('file'), async (req: Request, res: Respons
   } catch (error: any) {
     console.error('❌ OCR Route Error:', error);
     
-    // Cleanup file on error
+    // Cleanup local file on error
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
@@ -100,7 +93,9 @@ router.post('/process-url', async (req: Request, res: Response) => {
     console.log(`🌐 Processing URL: ${documentUrl}`);
 
     // Process with Mistral OCR
-    const result = await processDocument(documentUrl);
+    const result = await processDocumentUrl(documentUrl, {
+      includeImageBase64: true,
+    });
 
     console.log(`✅ Successfully processed URL`);
 
